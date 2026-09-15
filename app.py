@@ -12,6 +12,7 @@ app = Flask(__name__)
 SYSTEM_PROMPT = "You are ChatBot, a helpful, friendly assistant. Keep answers clear and useful."
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+DESKTOP_AGENT_URL = os.getenv("DESKTOP_AGENT_URL", "http://127.0.0.1:5050")
 
 
 def fallback_reply(message: str) -> str:
@@ -44,6 +45,23 @@ def ollama_reply(message: str) -> str | None:
         return None
 
 
+def desktop_command(message: str) -> str | None:
+    text = message.lower().strip()
+    if not any(text.startswith(prefix) for prefix in ("open ", "launch ", "start ")):
+        return None
+    try:
+        response = requests.post(
+            f"{DESKTOP_AGENT_URL}/api/desktop/open",
+            json={"message": message},
+            timeout=3,
+        )
+        if response.ok:
+            return response.json().get("message", "A confirmation window was opened.")
+    except requests.RequestException:
+        pass
+    return None
+
+
 @app.get("/")
 def index():
     return render_template("index.html")
@@ -57,6 +75,10 @@ def chat():
 
     if not message:
         return jsonify({"error": "Message is required."}), 400
+
+    action_result = desktop_command(message)
+    if action_result:
+        return jsonify({"reply": action_result, "mode": "desktop-agent"})
 
     api_key = browser_api_key or os.getenv("OPENAI_API_KEY")
     if api_key:
