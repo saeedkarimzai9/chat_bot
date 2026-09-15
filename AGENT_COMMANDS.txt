@@ -1,0 +1,34 @@
+CHATBOT DESKTOP AGENT — COMMAND CATEGORIES
+
+FILES
+make a new txt file called notes.txt
+create an html page called test.html
+make a 2D game in a new html file
+
+GAMES
+make a 2D game where I move up down left right
+make a Minecraft-like 2D ground game
+
+APPS
+open my camera
+open notepad
+open calculator
+open file explorer
+
+SCREENSHOTS
+take a screenshot
+open my camera and take a screenshot
+
+CODING / EXPLANATION
+explain this code
+change the player speed to 0.2
+add trees to the game
+
+WORKFLOW
+1. Tell ChatBot what you want in normal language.
+2. For supported file commands, the desktop agent prepares the file.
+3. A visible Windows Command Prompt asks for Y/N confirmation.
+4. Press Y to create the file or N to cancel.
+5. Created files are stored in your ChatBotAgentWorkspace folder.
+
+The agent is intentionally confirmation-gated and does not execute arbitrary shell commands.
