@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatBot Desktop Agent</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-orb"></div>
+        <div>
+          <strong>ChatBot Agent</strong>
+          <span>Local AI Desktop Control</span>
+        </div>
+      </div>
+
+      <div class="status-card">
+        <div class="status-row">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Checking Ollama...</span>
+        </div>
+        <div class="model-name" id="modelName">Local model</div>
+      </div>
+
+      <div class="network-title">AGENT NETWORK</div>
+      <div class="network-map" aria-label="Agent network visualization">
+        <div class="grid-lines"></div>
+        <div class="node node-main"><span>AI</span></div>
+        <div class="node node-ollama"><span>OLLAMA</span></div>
+        <div class="node node-files"><span>FILES</span></div>
+        <div class="node node-desktop"><span>DESKTOP</span></div>
+        <div class="connection c1"></div>
+        <div class="connection c2"></div>
+        <div class="connection c3"></div>
+        <div class="pulse p1"></div>
+        <div class="pulse p2"></div>
+        <div class="pulse p3"></div>
+      </div>
+
+      <div class="progress-card">
+        <div class="progress-header">
+          <span>SESSION PROGRESS</span>
+          <strong id="progressValue">0%</strong>
+        </div>
+        <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-label" id="progressLabel">Ready for your first task</div>
+      </div>
+
+      <div class="safety-note">✓ Actions are confirmed before they run</div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">LOCAL INTELLIGENCE CONSOLE</div>
+          <h1>What should we build?</h1>
+        </div>
+        <div class="live-badge"><span></span> LIVE</div>
+      </header>
+
+      <section class="chat-area" id="chatArea">
+        <div class="welcome" id="welcome">
+          <div class="welcome-icon">✦</div>
+          <h2>Ready when you are.</h2>
+          <p>Ask for code, files, games, explanations, or a safe desktop action.</p>
+          <div class="examples">
+            <button data-prompt="Make a new HTML page">Make a new HTML page</button>
+            <button data-prompt="Make a 2D game where I can move up, down, left, and right">Make a 2D game</button>
+            <button data-prompt="Explain this code">Explain this code</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="action-dock">
+        <div class="action-grid">
+          <button class="action-btn" data-app="camera"><span>◉</span> Camera</button>
+          <button class="action-btn" data-app="notepad"><span>▤</span> Notepad</button>
+          <button class="action-btn" data-app="calculator"><span>＋</span> Calculator</button>
+          <button class="action-btn" data-app="explorer"><span>□</span> Files</button>
+          <button class="action-btn" id="screenshotBtn"><span>▣</span> Screenshot</button>
+        </div>
+
+        <form class="composer" id="chatForm">
+          <textarea id="messageInput" rows="1" placeholder="Tell your agent what you want..." autocomplete="off"></textarea>
+          <button class="send-btn" type="submit" aria-label="Send">↑</button>
+        </form>
+        <div class="composer-hint">Enter to send · Shift+Enter for a new line · local Ollama processing</div>
+      </section>
+    </main>
+  </div>
+
+<script>
+const chatArea = document.getElementById('chatArea');
+const welcome = document.getElementById('welcome');
+const form = document.getElementById('chatForm');
+const input = document.getElementById('messageInput');
+const progressBar = document.getElementById('progressBar');
+const progressValue = document.getElementById('progressValue');
+const progressLabel = document.getElementById('progressLabel');
+
+let progress = 0;
+
+function setProgress(value, label) {
+  progress = Math.max(0, Math.min(100, value));
+  progressBar.style.width = progress + '%';
+  progressValue.textContent = progress + '%';
+  progressLabel.textContent = label;
+}
+
+function addMessage(role, text) {
+  welcome?.remove();
+  const row = document.createElement('div');
+  row.className = 'message-row ' + role;
+  const bubble = document.createElement('div');
+  bubble.className = 'message-bubble';
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  chatArea.appendChild(row);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+async function sendMessage(message) {
+  if (!message.trim()) return;
+  addMessage('user', message);
+  input.value = '';
+  setProgress(Math.max(progress, 15), 'Understanding your request...');
+
+  const thinking = document.createElement('div');
+  thinking.className = 'message-row assistant thinking-row';
+  thinking.innerHTML = '<div class="message-bubble thinking"><i></i><i></i><i></i><span>Processing locally...</span></div>';
+  chatArea.appendChild(thinking);
+  chatArea.scrollTop = chatArea.scrollHeight;
+
+  try {
+    setProgress(35, 'Sending task to local Ollama...');
+    const response = await fetch('/api/chat', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message})
+    });
+    const data = await response.json();
+    thinking.remove();
+    if (!response.ok) throw new Error(data.error || 'Request failed');
+    setProgress(100, 'Task response complete');
+    addMessage('assistant', data.answer || 'No response returned.');
+  } catch (error) {
+    thinking.remove();
+    setProgress(0, 'Ready — an error occurred');
+    addMessage('assistant', 'I could not reach the local agent: ' + error.message);
+  }
+}
+
+form.addEventListener('submit', (event) => {
+  event.preventDefault();
+  sendMessage(input.value);
+});
+
+input.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
+});
+
+document.querySelectorAll('[data-prompt]').forEach(button => {
+  button.addEventListener('click', () => sendMessage(button.dataset.prompt));
+});
+
+document.querySelectorAll('.action-btn[data-app]').forEach(button => {
+  button.addEventListener('click', async () => {
+    const app = button.dataset.app;
+    const label = button.textContent.trim();
+    if (!confirm('Open ' + label + '?')) return;
+    setProgress(45, 'Opening ' + label + '...');
+    try {
+      const response = await fetch('/api/desktop/open', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({app})
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not open app');
+      setProgress(100, label + ' opened');
+      addMessage('assistant', data.message || (label + ' opened successfully.'));
+    } catch (error) {
+      setProgress(0, 'Ready — action failed');
+      addMessage('assistant', 'Desktop action failed: ' + error.message);
+    }
+  });
+});
+
+document.getElementById('screenshotBtn').addEventListener('click', async () => {
+  if (!confirm('Take a screenshot now?')) return;
+  setProgress(50, 'Capturing screenshot...');
+  try {
+    const response = await fetch('/api/desktop/screenshot', {method: 'POST'});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Screenshot failed');
+    setProgress(100, 'Screenshot saved');
+    addMessage('assistant', data.message || 'Screenshot saved.');
+  } catch (error) {
+    setProgress(0, 'Ready — screenshot failed');
+    addMessage('assistant', 'Screenshot failed: ' + error.message);
+  }
+});
+
+async function checkHealth() {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  const model = document.getElementById('modelName');
+  try {
+    const response = await fetch('/api/health');
+    const data = await response.json();
+    if (data.ollama === 'ok') {
+      dot.classList.add('online');
+      text.textContent = 'Ollama connected';
+      model.textContent = data.model || 'Local model';
+    } else {
+      text.textContent = 'Ollama offline';
+      model.textContent = data.error || 'Start Ollama first';
+    }
+  } catch {
+    text.textContent = 'Agent offline';
+    model.textContent = 'Start app.py';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 10000);
+</script>
+</body>
+</html>
