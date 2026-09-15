@@ -1,6 +1,9 @@
 import os
 from flask import Flask, jsonify, render_template, request
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -16,7 +19,7 @@ def fallback_reply(message: str) -> str:
         return "Hello! I'm ChatBot. How can I help you?"
     if "your name" in text:
         return "I'm ChatBot, your assistant."
-    return "I'm running in local demo mode. Add OPENAI_API_KEY to enable full AI responses."
+    return "I'm running in local demo mode. Add OPENAI_API_KEY to your .env file to enable full AI responses."
 
 
 @app.get("/")
@@ -42,9 +45,9 @@ def chat():
             input=message,
         )
         return jsonify({"reply": response.output_text})
-    except Exception as exc:
+    except Exception:
         app.logger.exception("Chat request failed")
-        return jsonify({"error": f"Chat service error: {exc}"}), 500
+        return jsonify({"error": "Chat service error. Check your API key and server logs."}), 500
 
 
 if __name__ == "__main__":
