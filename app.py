@@ -7,9 +7,6 @@ load_dotenv()
 
 app = Flask(__name__)
 
-api_key = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=api_key) if api_key else None
-
 SYSTEM_PROMPT = "You are ChatBot, a helpful, friendly assistant. Keep answers clear and useful."
 
 
@@ -19,7 +16,7 @@ def fallback_reply(message: str) -> str:
         return "Hello! I'm ChatBot. How can I help you?"
     if "your name" in text:
         return "I'm ChatBot, your assistant."
-    return "I'm running in local demo mode. Add OPENAI_API_KEY to your .env file to enable full AI responses."
+    return "Add your OpenAI API key in the box above to enable full AI responses."
 
 
 @app.get("/")
@@ -31,14 +28,19 @@ def index():
 def chat():
     data = request.get_json(silent=True) or {}
     message = str(data.get("message", "")).strip()
+    browser_api_key = request.headers.get("X-OpenAI-API-Key", "").strip()
 
     if not message:
         return jsonify({"error": "Message is required."}), 400
 
-    if client is None:
+    # A key entered in the web page takes priority. The local .env key is kept
+    # as a fallback for local use, and neither key is written to the repository.
+    api_key = browser_api_key or os.getenv("OPENAI_API_KEY")
+    if not api_key:
         return jsonify({"reply": fallback_reply(message)})
 
     try:
+        client = OpenAI(api_key=api_key)
         response = client.responses.create(
             model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
             instructions=SYSTEM_PROMPT,
@@ -47,7 +49,7 @@ def chat():
         return jsonify({"reply": response.output_text})
     except Exception:
         app.logger.exception("Chat request failed")
-        return jsonify({"error": "Chat service error. Check your API key and server logs."}), 500
+        return jsonify({"error": "Chat service error. Check the API key and server logs."}), 500
 
 
 if __name__ == "__main__":
