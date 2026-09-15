@@ -26,39 +26,35 @@ def fallback_reply(message: str) -> str:
 
 def ollama_reply(message: str) -> str | None:
     try:
-        response = requests.post(
-            f"{OLLAMA_URL}/api/chat",
-            json={
-                "model": OLLAMA_MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": message},
-                ],
-                "stream": False,
-            },
-            timeout=120,
-        )
+        response = requests.post(f"{OLLAMA_URL}/api/chat", json={"model": OLLAMA_MODEL, "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": message}], "stream": False}, timeout=120)
         response.raise_for_status()
-        data = response.json()
-        return data.get("message", {}).get("content", "").strip() or None
+        return response.json().get("message", {}).get("content", "").strip() or None
     except requests.RequestException:
         return None
+
+
+def desktop_request(endpoint: str, message: str) -> str | None:
+    try:
+        response = requests.post(f"{DESKTOP_AGENT_URL}{endpoint}", json={"message": message}, timeout=3)
+        if response.ok:
+            return response.json().get("message")
+    except requests.RequestException:
+        pass
+    return None
 
 
 def desktop_command(message: str) -> str | None:
     text = message.lower().strip()
-    if not any(text.startswith(prefix) for prefix in ("open ", "launch ", "start ")):
-        return None
-    try:
-        response = requests.post(
-            f"{DESKTOP_AGENT_URL}/api/desktop/open",
-            json={"message": message},
-            timeout=3,
-        )
-        if response.ok:
-            return response.json().get("message", "A confirmation window was opened.")
-    except requests.RequestException:
-        pass
+    if text.startswith(("open ", "launch ", "start ")):
+        return desktop_request("/api/desktop/open", message)
+    return None
+
+
+def file_command(message: str) -> str | None:
+    text = message.lower().strip()
+    triggers = ("make a new file", "create a new file", "make a file", "create a file", "make a new html", "make a new txt", "create an html", "create a txt", "make a 2d game", "create a 2d game")
+    if text.startswith(triggers) or "minecraft-like 2d" in text:
+        return desktop_request("/api/desktop/create", message)
     return None
 
 
@@ -76,7 +72,7 @@ def chat():
     if not message:
         return jsonify({"error": "Message is required."}), 400
 
-    action_result = desktop_command(message)
+    action_result = desktop_command(message) or file_command(message)
     if action_result:
         return jsonify({"reply": action_result, "mode": "desktop-agent"})
 
@@ -84,11 +80,7 @@ def chat():
     if api_key:
         try:
             client = OpenAI(api_key=api_key)
-            response = client.responses.create(
-                model=os.getenv("OPENAI_MODEL", "gpt-5-mini"),
-                instructions=SYSTEM_PROMPT,
-                input=message,
-            )
+            response = client.responses.create(model=os.getenv("OPENAI_MODEL", "gpt-5-mini"), instructions=SYSTEM_PROMPT, input=message)
             return jsonify({"reply": response.output_text, "mode": "openai"})
         except Exception:
             app.logger.exception("OpenAI request failed; trying local Ollama")
