@@ -18,7 +18,7 @@
     </aside>
 
     <main class="main-panel">
-      <header class="topbar"><div><div class="eyebrow">LOCAL INTELLIGENCE CONSOLE</div><h1>What should we build?</h1></div><div class="live-badge"><span></span> LIVE</div></header>
+      <header class="topbar"><div><div class="eyebrow">LOCAL INTELLIGENCE CONSOLE</div><h1>What should we build?</h1></div><div class="topbar-actions"><button id="clearChatBtn" class="utility-btn" type="button">Clear chat</button><div class="live-badge"><span></span> LIVE</div></div></header>
 
       <section class="chat-area" id="chatArea">
         <div class="welcome" id="welcome"><div class="welcome-icon">✦</div><h2>System 64 is ready.</h2><p>Ask for code, files, games, explanations, or a safe desktop action.</p><div class="examples"><button data-prompt="Make a new HTML page">Make a new HTML page</button><button data-prompt="Make a 2D game where I can move up, down, left, and right">Make a 2D game</button><button data-prompt="Explain this code">Explain this code</button></div></div>
@@ -58,6 +58,7 @@ let progress = 0;
 
 function setProgress(value, label) { progress = Math.max(0, Math.min(100, value)); progressBar.style.width = progress + '%'; progressValue.textContent = progress + '%'; progressLabel.textContent = label; }
 function addMessage(role, text) { welcome?.remove(); const row = document.createElement('div'); row.className = 'message-row ' + role; const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.textContent = text; row.appendChild(bubble); chatArea.appendChild(row); chatArea.scrollTop = chatArea.scrollHeight; }
+function resetChat() { chatArea.innerHTML = ''; chatArea.appendChild(welcome); welcome.style.display = ''; setProgress(0, 'Ready for your first task'); input.focus(); }
 
 async function sendMessage(message) {
   if (!message.trim()) return;
@@ -70,6 +71,7 @@ async function sendMessage(message) {
 form.addEventListener('submit', event => { event.preventDefault(); sendMessage(input.value); });
 input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); form.requestSubmit(); } });
 document.querySelectorAll('[data-prompt]').forEach(button => button.addEventListener('click', () => sendMessage(button.dataset.prompt)));
+document.getElementById('clearChatBtn').addEventListener('click', () => { if (confirm('Clear this chat from the screen?')) resetChat(); });
 
 document.querySelectorAll('.action-btn[data-app]').forEach(button => button.addEventListener('click', async () => {
   const app = button.dataset.app, label = button.textContent.trim(); if (!confirm('Open ' + label + '?')) return; setProgress(45, 'Opening ' + label + '...');
