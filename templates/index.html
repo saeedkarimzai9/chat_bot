@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ChatBot Desktop Agent</title>
+  <title>System 64 — ChatBot Desktop Agent</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
       <div class="brand">
         <div class="brand-orb"></div>
         <div>
-          <strong>ChatBot Agent</strong>
+          <strong>System 64</strong>
           <span>Local AI Desktop Control</span>
         </div>
       </div>
@@ -20,9 +20,10 @@
       <div class="status-card">
         <div class="status-row">
           <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Checking Ollama...</span>
+          <span id="statusText">Checking services...</span>
         </div>
         <div class="model-name" id="modelName">Local model</div>
+        <div class="service-line" id="desktopStatus">Desktop agent: checking...</div>
       </div>
 
       <div class="network-title">AGENT NETWORK</div>
@@ -64,7 +65,7 @@
       <section class="chat-area" id="chatArea">
         <div class="welcome" id="welcome">
           <div class="welcome-icon">✦</div>
-          <h2>Ready when you are.</h2>
+          <h2>System 64 is ready.</h2>
           <p>Ask for code, files, games, explanations, or a safe desktop action.</p>
           <div class="examples">
             <button data-prompt="Make a new HTML page">Make a new HTML page</button>
@@ -84,7 +85,7 @@
         </div>
 
         <form class="composer" id="chatForm">
-          <textarea id="messageInput" rows="1" placeholder="Tell your agent what you want..." autocomplete="off"></textarea>
+          <textarea id="messageInput" rows="1" placeholder="Tell System 64 what you want..." autocomplete="off"></textarea>
           <button class="send-btn" type="submit" aria-label="Send">↑</button>
         </form>
         <div class="composer-hint">Enter to send · Shift+Enter for a new line · local Ollama processing</div>
@@ -209,22 +210,24 @@ async function checkHealth() {
   const dot = document.getElementById('statusDot');
   const text = document.getElementById('statusText');
   const model = document.getElementById('modelName');
+  const desktop = document.getElementById('desktopStatus');
   try {
     const response = await fetch('/api/health');
     const data = await response.json();
-    if (data.ollama === 'ok') {
-      dot.classList.add('online');
-      text.textContent = 'Ollama connected';
-      model.textContent = data.model || 'Local model';
-    } else {
-      text.textContent = 'Ollama offline';
-      model.textContent = data.error || 'Start Ollama first';
-    }
+    const ollamaOnline = data.ollama === true;
+    const desktopOnline = data.desktop_agent === true;
+    dot.classList.toggle('online', ollamaOnline);
+    text.textContent = ollamaOnline ? 'Ollama connected' : 'Ollama offline';
+    model.textContent = data.model || 'Local model';
+    desktop.textContent = desktopOnline ? 'Desktop agent: online' : 'Desktop agent: offline';
   } catch {
+    dot.classList.remove('online');
     text.textContent = 'Agent offline';
     model.textContent = 'Start app.py';
+    desktop.textContent = 'Desktop agent: offline';
   }
 }
+
 checkHealth();
 setInterval(checkHealth, 10000);
 </script>
