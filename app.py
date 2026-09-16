@@ -8,6 +8,7 @@ app = Flask(__name__)
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/chat")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder")
+OLLAMA_TAGS_URL = os.getenv("OLLAMA_TAGS_URL", "http://127.0.0.1:11434/api/tags")
 DESKTOP_AGENT_URL = os.getenv("DESKTOP_AGENT_URL", "http://127.0.0.1:5050")
 
 SYSTEM_PROMPT = """You are the local ChatBot Desktop Agent assistant.
@@ -36,6 +37,13 @@ def ollama_chat(message: str) -> str:
     return data.get("message", {}).get("content", "No response was returned by Ollama.")
 
 
+def service_ok(url: str, timeout: float = 3) -> bool:
+    try:
+        return requests.get(url, timeout=timeout).ok
+    except requests.RequestException:
+        return False
+
+
 @app.get("/")
 def index():
     return render_template("index.html")
@@ -43,13 +51,14 @@ def index():
 
 @app.get("/api/health")
 def health():
-    ollama_ok = False
-    try:
-        response = requests.get("http://127.0.0.1:11434/api/tags", timeout=3)
-        ollama_ok = response.ok
-    except requests.RequestException:
-        pass
-    return jsonify({"ok": True, "ollama": ollama_ok, "model": OLLAMA_MODEL})
+    ollama_ok = service_ok(OLLAMA_TAGS_URL)
+    desktop_ok = service_ok(f"{DESKTOP_AGENT_URL}/api/health")
+    return jsonify({
+        "ok": True,
+        "ollama": ollama_ok,
+        "desktop_agent": desktop_ok,
+        "model": OLLAMA_MODEL,
+    })
 
 
 @app.post("/api/chat")
