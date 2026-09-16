@@ -23,9 +23,16 @@ try:
 except ImportError:
     win32com = None
 
-WAKE_PHRASE = os.getenv("SYSTEM64_WAKE_PHRASE", "system 64 wake up").lower()
-MODEL_PATH = Path(os.getenv("SYSTEM64_VOSK_MODEL", "models/vosk-model-small-en-us"))
+BASE_DIR = Path(__file__).resolve().parent
+WAKE_PHRASE = os.getenv("SYSTEM64_WAKE_PHRASE", "system 64 wake up").lower().strip()
+MODEL_PATH = Path(os.getenv("SYSTEM64_VOSK_MODEL", str(BASE_DIR / "models" / "vosk-model-small-en-us")))
 SAMPLE_RATE = 16000
+
+# Common speech-recognition variants are accepted locally without sending audio anywhere.
+WAKE_VARIANTS = {
+    WAKE_PHRASE,
+    WAKE_PHRASE.replace("system 64", "system sixty four"),
+}
 
 
 class System64WakeWord:
@@ -38,10 +45,10 @@ class System64WakeWord:
     def start(self) -> None:
         if self.running:
             return
-        if not MODEL_PATH.exists():
+        if not MODEL_PATH.exists() or not MODEL_PATH.is_dir():
             raise RuntimeError(
                 f"Vosk model not found at '{MODEL_PATH}'. "
-                "Download a small English Vosk model and place it there."
+                "Extract the English model into models/vosk-model-small-en-us."
             )
         self.running = True
         self._thread = threading.Thread(target=self._listen_loop, daemon=True)
@@ -51,31 +58,38 @@ class System64WakeWord:
         self.running = False
 
     def _listen_loop(self) -> None:
-        model = Model(str(MODEL_PATH))
-        recognizer = KaldiRecognizer(model, SAMPLE_RATE)
-        recognizer.SetWords(False)
+        try:
+            model = Model(str(MODEL_PATH))
+            recognizer = KaldiRecognizer(model, SAMPLE_RATE)
+            recognizer.SetWords(False)
 
-        def callback(indata, frames, callback_time, status):
-            if status:
-                print(f"Microphone status: {status}")
-            if not self.running:
-                return
-            if recognizer.AcceptWaveform(indata):
-                result = json.loads(recognizer.Result())
-                text = result.get("text", "").lower().strip()
-                if WAKE_PHRASE in text:
-                    self._wake()
+            def callback(indata, frames, callback_time, status):
+                if status:
+                    print(f"Microphone status: {status}")
+                if not self.running:
+                    return
+                try:
+                    if recognizer.AcceptWaveform(indata):
+                        result = json.loads(recognizer.Result())
+                        text = result.get("text", "").lower().strip()
+                        if any(phrase in text for phrase in WAKE_VARIANTS):
+                            self._wake()
+                except Exception as exc:
+                    print(f"Wake-word recognition error: {exc}")
 
-        print(f"System 64 wake listener armed for: '{WAKE_PHRASE}'")
-        with sd.RawInputStream(
-            samplerate=SAMPLE_RATE,
-            blocksize=8000,
-            dtype="int16",
-            channels=1,
-            callback=callback,
-        ):
-            while self.running:
-                time.sleep(0.2)
+            print(f"System 64 wake listener armed for: '{WAKE_PHRASE}'")
+            with sd.RawInputStream(
+                samplerate=SAMPLE_RATE,
+                blocksize=8000,
+                dtype="int16",
+                channels=1,
+                callback=callback,
+            ):
+                while self.running:
+                    time.sleep(0.2)
+        except Exception as exc:
+            self.running = False
+            print(f"System 64 wake listener stopped: {exc}")
 
     def _wake(self) -> None:
         if self.active:
@@ -95,17 +109,22 @@ class System64WakeWord:
         if win32com is None:
             print(text)
             return
-        voice = win32com.client.Dispatch("SAPI.SpVoice")
-        voice.Rate = -1
-        voice.Volume = 100
-        voice.Speak(text)
+        try:
+            voice = win32com.client.Dispatch("SAPI.SpVoice")
+            voice.Rate = -1
+            voice.Volume = 100
+            voice.Speak(text)
+        except Exception as exc:
+            print(f"Voice output unavailable: {exc}")
+            print(text)
 
 
 if __name__ == "__main__":
     listener = System64WakeWord()
     try:
         listener.start()
-        while True:
+        while listener.running:
             time.sleep(1)
     except KeyboardInterrupt:
         listener.stop()
+        print("System 64 wake listener stopped.")
