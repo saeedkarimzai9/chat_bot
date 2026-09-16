@@ -39,9 +39,10 @@ echo Checking for an installed Ollama model...
 ollama list
 
 echo.
-echo IMPORTANT: the Ollama model is the main large download.
-echo If qwen2.5-coder is already installed, nothing else is needed for the AI model.
-echo The wake-word listener also needs a small Vosk English model.
+echo System 64 is configured to use: qwen2.5-coder:7b
+echo If qwen2.5-coder:7b appears above, the AI model is ready.
+echo The wake-word listener also needs the Vosk English model at:
+echo models\vosk-model-small-en-us
 echo.
 echo Setup finished.
 echo Run system64_launcher.bat to start System 64.
