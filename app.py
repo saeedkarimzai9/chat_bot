@@ -7,7 +7,7 @@ from flask import Flask, jsonify, render_template, request
 app = Flask(__name__)
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434/api/chat")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b")
 OLLAMA_TAGS_URL = os.getenv("OLLAMA_TAGS_URL", "http://127.0.0.1:11434/api/tags")
 DESKTOP_AGENT_URL = os.getenv("DESKTOP_AGENT_URL", "http://127.0.0.1:5050")
 
@@ -80,7 +80,7 @@ def chat():
         return jsonify({"answer": answer, "model": OLLAMA_MODEL})
     except requests.RequestException as exc:
         return jsonify({
-            "error": "Ollama is not reachable. Start Ollama and make sure the model is installed.",
+            "error": f"Ollama could not answer using model '{OLLAMA_MODEL}'. Make sure Ollama is running and that this model is installed.",
             "details": str(exc),
         }), 503
 
