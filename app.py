@@ -44,6 +44,11 @@ def service_ok(url: str, timeout: float = 3) -> bool:
         return False
 
 
+def proxy_desktop(path: str, method: str = "GET", payload: dict[str, Any] | None = None, timeout: int = 15):
+    response = requests.request(method, f"{DESKTOP_AGENT_URL}{path}", json=payload, timeout=timeout)
+    return response.text, response.status_code, {"Content-Type": "application/json"}
+
+
 @app.get("/")
 def index():
     return render_template("index.html")
@@ -67,6 +72,8 @@ def chat():
     message = str(data.get("message", "")).strip()
     if not message:
         return jsonify({"error": "Message is required."}), 400
+    if len(message) > 20_000:
+        return jsonify({"error": "Message is too long. Keep it under 20,000 characters."}), 413
 
     try:
         answer = ollama_chat(message)
@@ -85,12 +92,7 @@ def desktop_open():
     if not app_name:
         return jsonify({"error": "App name is required."}), 400
     try:
-        response = requests.post(
-            f"{DESKTOP_AGENT_URL}/api/open",
-            json={"app": app_name},
-            timeout=15,
-        )
-        return (response.text, response.status_code, {"Content-Type": "application/json"})
+        return proxy_desktop("/api/open", "POST", {"app": app_name})
     except requests.RequestException as exc:
         return jsonify({"error": "Desktop agent is not running.", "details": str(exc)}), 503
 
@@ -98,8 +100,27 @@ def desktop_open():
 @app.post("/api/desktop/screenshot")
 def desktop_screenshot():
     try:
-        response = requests.post(f"{DESKTOP_AGENT_URL}/api/screenshot", timeout=30)
-        return (response.text, response.status_code, {"Content-Type": "application/json"})
+        return proxy_desktop("/api/screenshot", "POST", timeout=30)
+    except requests.RequestException as exc:
+        return jsonify({"error": "Desktop agent is not running.", "details": str(exc)}), 503
+
+
+@app.post("/api/desktop/files/preview")
+def desktop_files_preview():
+    data = request.get_json(silent=True) or {}
+    try:
+        return proxy_desktop("/api/files/preview", "POST", data)
+    except requests.RequestException as exc:
+        return jsonify({"error": "Desktop agent is not running.", "details": str(exc)}), 503
+
+
+@app.post("/api/desktop/files/write")
+def desktop_files_write():
+    data = request.get_json(silent=True) or {}
+    if data.get("confirmed") is not True:
+        return jsonify({"error": "Explicit confirmation is required."}), 400
+    try:
+        return proxy_desktop("/api/files/write", "POST", data)
     except requests.RequestException as exc:
         return jsonify({"error": "Desktop agent is not running.", "details": str(exc)}), 503
 
