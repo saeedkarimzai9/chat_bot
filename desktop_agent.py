@@ -1,6 +1,6 @@
 import os
 import subprocess
-import threading
+from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, jsonify, request
@@ -22,8 +22,10 @@ ALLOWED_APPS = {
     "camera": ["explorer.exe", "shell:AppsFolder\\Microsoft.WindowsCamera_8wekyb3d8bbwe!App"],
     "notepad": ["notepad.exe"],
     "calculator": ["calc.exe"],
+    "paint": ["mspaint.exe"],
     "file explorer": ["explorer.exe"],
     "explorer": ["explorer.exe"],
+    "files": ["explorer.exe"],
     "settings": ["explorer.exe", "ms-settings:"],
 }
 
@@ -52,7 +54,8 @@ def open_allowlisted_app(name: str) -> str:
 def save_screenshot() -> Path:
     if ImageGrab is None:
         raise RuntimeError("Pillow is required for screenshots. Run: pip install -r requirements.txt")
-    path = SCREENSHOT_DIR / "screenshot.png"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = SCREENSHOT_DIR / f"screenshot_{timestamp}.png"
     image = ImageGrab.grab()
     image.save(path)
     return path
@@ -60,7 +63,13 @@ def save_screenshot() -> Path:
 
 @app.get("/api/health")
 def health():
-    return jsonify({"ok": True, "workspace": str(WORKSPACE)})
+    return jsonify({
+        "ok": True,
+        "service": "System 64 Desktop Agent",
+        "workspace": str(WORKSPACE),
+        "screenshots": str(SCREENSHOT_DIR),
+        "allowlisted_apps": sorted(ALLOWED_APPS),
+    })
 
 
 @app.post("/api/open")
@@ -84,7 +93,7 @@ def screenshot():
     # after the user has asked for a screenshot and confirmed the action.
     try:
         path = save_screenshot()
-        return jsonify({"ok": True, "path": str(path)})
+        return jsonify({"ok": True, "message": f"Screenshot saved to {path}", "path": str(path)})
     except (OSError, RuntimeError) as exc:
         return jsonify({"error": str(exc)}), 500
 
