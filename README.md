@@ -10,23 +10,23 @@ You only need these things:
 2. **Ollama** — required for the local AI model. You already have Ollama installed.
 3. **One Ollama model** — use the coding model you already downloaded, such as `qwen2.5-coder`. Do not download another model unless your installed model is missing.
 4. **Python packages** — run `setup_system64.bat`; it installs the packages listed in `requirements.txt`.
-5. **One small Vosk English speech model** — required only for the offline wake phrase `System 64, wake up`. Put it in `models/vosk-model-small-en-us`.
+5. **Vosk English speech model** — the current repository already includes the small model at `models/vosk-model-small-en-us`.
 
 There is no paid API and no cloud speech-recognition service in this project.
 
-## Important: the one thing that cannot be bundled here
+## Vosk wake-word model
 
-The Vosk speech model is model data rather than Python code, so it is intentionally not stored in this GitHub repository. Download the small English Vosk model once and keep the extracted folder at:
+The current repository already contains the small English Vosk model used for the offline wake phrase. After downloading the ZIP from GitHub, keep the folder structure intact so this path exists:
 
 `models/vosk-model-small-en-us`
 
-After that, you should not need another speech-model download.
+You do not need to download the Vosk model separately when using the current repository ZIP.
 
 ## Easy setup
 
 1. Download/clone this repository to your PC.
-2. Put the Vosk model folder at `models/vosk-model-small-en-us`.
-3. Double-click `setup_system64.bat` once. It installs the Python packages and checks Python/Ollama.
+2. Keep the included Vosk model at `models/vosk-model-small-en-us`.
+3. Double-click `setup_system64.bat` once. It installs the Python packages and checks Python/Ollama/model files.
 4. Make sure your Ollama model is installed. You can check with `ollama list`.
 5. Double-click `system64_launcher.bat`.
 6. The local web interface opens at `http://127.0.0.1:5000`.
@@ -56,11 +56,11 @@ Run `ollama list` and use the exact model name shown there. If needed, set `OLLA
 
 ### Wake phrase says the Vosk model is missing
 
-Check that the extracted model folder exists exactly here:
+Check that the extracted repository contains this folder:
 
 `models/vosk-model-small-en-us`
 
-Do not put the ZIP file there; extract the model folder first.
+If you downloaded the repository as a ZIP, make sure you extracted the whole ZIP rather than running files from inside the ZIP.
 
 ### Python package installation fails
 
@@ -82,3 +82,8 @@ Generated files are kept under:
 - Add trees to my game.
 - Change the player speed.
 - Explain this code.
+
+## Windows Smart App Control
+
+If Windows 11 shows a Smart App Control or Windows security warning when you launch a `.bat` file downloaded from GitHub, that is Windows checking a downloaded script before allowing it to run. Do not disable Smart App Control just for this project. If you trust the repository, extract the ZIP to a normal folder and review the script before running it. You can also run the Python commands manually from Command Prompt instead of using the batch launcher.
+
