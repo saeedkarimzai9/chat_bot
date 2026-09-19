@@ -1,9 +1,7 @@
-name: Run System 64 Discord Bot
+name: Run Discord Bot
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -14,6 +12,7 @@ jobs:
     timeout-minutes: 350
     env:
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -26,5 +25,5 @@ jobs:
       - name: Install Discord bot dependencies
         run: python -m pip install -r requirements-discord.txt
 
-      - name: Start System 64 Discord bot
+      - name: Start Discord bot
         run: python discord_bot.py
