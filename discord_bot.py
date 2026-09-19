@@ -8,9 +8,7 @@ load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
-    raise RuntimeError("DISCORD_TOKEN is not set. Add it to your .env file or hosting secret.")
-
-GUILD_ID = os.getenv("DISCORD_GUILD_ID")
+    raise RuntimeError("DISCORD_TOKEN is not set.")
 
 intents = discord.Intents.default()
 
@@ -21,14 +19,8 @@ class System64Bot(discord.Client):
         self.tree = app_commands.CommandTree(self)
 
     async def setup_hook(self):
-        if GUILD_ID:
-            guild = discord.Object(id=int(GUILD_ID))
-            self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
-            print(f"Synced commands to test server {GUILD_ID}.")
-        else:
-            await self.tree.sync()
-            print("Synced global slash commands.")
+        await self.tree.sync()
+        print("Slash commands synced.")
 
 
 bot = System64Bot()
@@ -39,34 +31,45 @@ async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
 
 
-@bot.tree.command(name="ping", description="Check whether the bot is online.")
-async def ping(interaction: discord.Interaction):
-    latency_ms = round(bot.latency * 1000)
-    await interaction.response.send_message(f"Pong! `{latency_ms}ms`")
+sudo_group = app_commands.Group(
+    name="sudo",
+    description="Administrator-only controlled commands",
+)
 
 
-@bot.tree.command(name="about", description="Show information about this Discord bot.")
-async def about(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="System 64 Discord Bot",
-        description="A lightweight Discord bot with an administrator-only SUDO command.",
-        color=discord.Color.blurple(),
-    )
-    embed.add_field(name="/ping", value="Check bot latency.", inline=False)
-    embed.add_field(name="/sudo", value="Send a clearly labeled admin-authorized message.", inline=False)
-    embed.set_footer(text="System 64")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@bot.tree.command(name="sudo", description="Admin-only controlled message command")
+@sudo_group.command(
+    name="say",
+    description="Send a clearly labeled SUDO message",
+)
 @app_commands.describe(
-    name="A display name/persona label",
+    name="The display name/persona label",
     message="The message to send",
 )
-async def sudo(interaction: discord.Interaction, name: str, message: str):
+async def sudo_say(
+    interaction: discord.Interaction,
+    name: str,
+    message: str,
+):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
-            "You need Administrator permission to use /sudo.",
+            "You need Administrator permission to use /sudo say.",
+            ephemeral=True,
+        )
+        return
+
+    name = name.strip()
+    message = message.strip()
+
+    if not name:
+        await interaction.response.send_message(
+            "The name cannot be empty.",
+            ephemeral=True,
+        )
+        return
+
+    if not message:
+        await interaction.response.send_message(
+            "The message cannot be empty.",
             ephemeral=True,
         )
         return
@@ -85,10 +88,19 @@ async def sudo(interaction: discord.Interaction, name: str, message: str):
         )
         return
 
-    embed = discord.Embed(description=message, color=discord.Color.blurple())
+    embed = discord.Embed(
+        description=message,
+        color=discord.Color.blurple(),
+    )
     embed.set_author(name=f"SUDO • {name}")
-    embed.set_footer(text=f"Authorized by {interaction.user.display_name}")
+    embed.set_footer(
+        text=f"Authorized by {interaction.user.display_name}"
+    )
+
     await interaction.response.send_message(embed=embed)
+
+
+bot.tree.add_command(sudo_group)
 
 
 @bot.tree.error
@@ -100,12 +112,12 @@ async def on_app_command_error(
 
     if interaction.response.is_done():
         await interaction.followup.send(
-            "Something went wrong while running that command.",
+            "The command could not be completed.",
             ephemeral=True,
         )
     else:
         await interaction.response.send_message(
-            "Something went wrong while running that command.",
+            "The command could not be completed.",
             ephemeral=True,
         )
 
