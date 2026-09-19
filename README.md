@@ -1,15 +1,22 @@
 # Discord Bot
 
-A clean restart of the Discord bot project.
+A clean Discord bot project.
 
 ## Command
 
-### /sudo say
+### /sudo
+
 Administrator-only command that posts a clearly labeled SUDO message using a name/persona label you choose.
 
-Example:
+The command is structured so the two inputs are entered in order:
 
-/sudo say name:Steve message:Hello everyone!
+`/sudo name message`
+
+For example:
+
+`/sudo Steve Hello everyone!`
+
+In Discord's slash-command UI, Discord will display the two required fields as `name` and `message`.
 
 The bot does **not** impersonate or claim to be a real Discord user. Every message is visibly labeled as SUDO and includes the administrator who authorized it.
 
