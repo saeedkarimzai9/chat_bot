@@ -41,8 +41,12 @@ ollama list
 echo.
 echo System 64 is configured to use: qwen2.5-coder:7b
 echo If qwen2.5-coder:7b appears above, the AI model is ready.
-echo The wake-word listener also needs the Vosk English model at:
-echo models\vosk-model-small-en-us
+if exist "models\vosk-model-small-en-us\am" if exist "models\vosk-model-small-en-us\graph" (
+  echo Vosk wake-word model: FOUND
+) else (
+  echo Vosk wake-word model: NOT FOUND
+  echo Expected folder: models\vosk-model-small-en-us
+)
 echo.
 echo Setup finished.
 echo Run system64_launcher.bat to start System 64.
