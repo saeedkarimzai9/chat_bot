@@ -31,28 +31,22 @@ async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
 
 
-sudo_group = app_commands.Group(
+@bot.tree.command(
     name="sudo",
-    description="Administrator-only controlled commands",
-)
-
-
-@sudo_group.command(
-    name="say",
     description="Send a clearly labeled SUDO message",
 )
 @app_commands.describe(
     name="The display name/persona label",
     message="The message to send",
 )
-async def sudo_say(
+async def sudo(
     interaction: discord.Interaction,
     name: str,
     message: str,
 ):
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
-            "You need Administrator permission to use /sudo say.",
+            "You need Administrator permission to use /sudo.",
             ephemeral=True,
         )
         return
@@ -98,9 +92,6 @@ async def sudo_say(
     )
 
     await interaction.response.send_message(embed=embed)
-
-
-bot.tree.add_command(sudo_group)
 
 
 @bot.tree.error
